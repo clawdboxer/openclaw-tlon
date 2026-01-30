@@ -99,8 +99,11 @@ export async function fetchThreadHistory(
 ): Promise<TlonHistoryEntry[]> {
   try {
     // Tlon API: fetch replies to a specific post
-    // Format: /channels/v4/{nest}/posts/post/{parentId}/replies/newest/{count}/outline.json
-    const scryPath = `/channels/v4/${channelNest}/posts/post/${parentId}/replies/newest/${count}/outline.json`;
+    // Format: /channels/v4/{nest}/posts/post/{parentId}/replies/newest/{count}.json
+    // parentId might need @ud formatting (dots) - try both
+    runtime?.log?.(`[tlon] Thread history - parentId raw: ${parentId}`);
+    
+    const scryPath = `/channels/v4/${channelNest}/posts/post/${parentId}/replies/newest/${count}.json`;
     runtime?.log?.(`[tlon] Fetching thread history: ${scryPath}`);
 
     const data: any = await api.scry(scryPath);
