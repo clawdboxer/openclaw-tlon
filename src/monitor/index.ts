@@ -480,26 +480,10 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
       const response = event?.response;
       if (!response) return;
 
-      // DEBUG: Log raw event structure for thread debugging
-      runtime.log?.(`[tlon:debug] Channel event keys: ${JSON.stringify(Object.keys(response))}`);
-      if (response?.post) {
-        runtime.log?.(`[tlon:debug] Post keys: ${JSON.stringify(Object.keys(response.post))}`);
-        if (response.post?.["r-post"]) {
-          runtime.log?.(`[tlon:debug] r-post keys: ${JSON.stringify(Object.keys(response.post["r-post"]))}`);
-          if (response.post["r-post"]?.reply) {
-            runtime.log?.(`[tlon:debug] THREAD REPLY detected! reply keys: ${JSON.stringify(Object.keys(response.post["r-post"].reply))}`);
-          }
-        }
-      }
-
       // Handle post responses (new posts and replies)
       const essay = response?.post?.["r-post"]?.set?.essay;
       const memo = response?.post?.["r-post"]?.reply?.["r-reply"]?.set?.memo;
-      if (!essay && !memo) {
-        runtime.log?.(`[tlon:debug] No essay or memo found - essay: ${!!essay}, memo: ${!!memo}`);
-        return;
-      }
-      runtime.log?.(`[tlon:debug] Processing ${memo ? 'THREAD REPLY' : 'TOP-LEVEL POST'}`);
+      if (!essay && !memo) return;
 
       const content = memo || essay;
       const isThreadReply = Boolean(memo);
