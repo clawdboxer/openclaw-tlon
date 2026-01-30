@@ -21,6 +21,7 @@ import {
 } from "./utils.js";
 import { fetchAllChannels } from "./discovery.js";
 import { createSettingsManager, type TlonSettingsStore } from "../settings.js";
+import type { Foreigns, DmInvite } from "../urbit/foreigns.js";
 
 export type MonitorTlonOpts = {
   runtime?: RuntimeEnv;
@@ -468,10 +469,36 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
   };
 
   // Firehose handler for all DM messages (/v3)
+  // Track which DM invites we've already processed to avoid duplicate accepts
+  const processedDmInvites = new Set<string>();
+
   const handleChatFirehose = async (event: any) => {
     try {
-      // Skip non-message events (arrays are DM invite lists, etc.)
-      if (Array.isArray(event)) return;
+      // Handle DM invite lists (arrays)
+      if (Array.isArray(event)) {
+        if (account.autoAcceptDmInvites) {
+          for (const invite of event as DmInvite[]) {
+            const ship = normalizeShip(invite.ship || "");
+            if (!ship || processedDmInvites.has(ship)) continue;
+            
+            // Only auto-accept from ships in the allowlist
+            if (isDmAllowed(ship, effectiveDmAllowlist)) {
+              try {
+                await api!.poke({
+                  app: "chat",
+                  mark: "chat-dm-rsvp",
+                  json: { ship, ok: true },
+                });
+                processedDmInvites.add(ship);
+                runtime.log?.(`[tlon] Auto-accepted DM invite from ${ship}`);
+              } catch (err) {
+                runtime.error?.(`[tlon] Failed to auto-accept DM from ${ship}: ${String(err)}`);
+              }
+            }
+          }
+        }
+        return;
+      }
       if (!("whom" in event) || !("response" in event)) return;
 
       const whom = event.whom; // DM partner ship or club ID
@@ -716,6 +743,61 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
     } catch (err) {
       // Groups-ui subscription is optional - channel discovery will still work via polling
       runtime.log?.(`[tlon] Groups-ui subscription failed (will rely on polling): ${String(err)}`);
+    }
+
+    // Subscribe to foreigns for auto-accepting group invites
+    if (account.autoAcceptGroupInvites) {
+      const processedGroupInvites = new Set<string>();
+      
+      try {
+        await api!.subscribe({
+          app: "groups",
+          path: "/v1/foreigns",
+          event: async (event: Foreigns) => {
+            try {
+              if (!event || typeof event !== "object") return;
+              
+              // Process each group with pending invites
+              for (const [groupFlag, foreign] of Object.entries(event)) {
+                // Skip if already processed or no valid invites
+                if (processedGroupInvites.has(groupFlag)) continue;
+                if (!foreign.invites || foreign.invites.length === 0) continue;
+                
+                // Check for valid invites
+                const validInvite = foreign.invites.find(inv => inv.valid);
+                if (!validInvite) continue;
+                
+                // Auto-accept the group invite
+                try {
+                  await api!.poke({
+                    app: "groups",
+                    mark: "group-join",
+                    json: {
+                      flag: groupFlag,
+                      "join-all": true,
+                    },
+                  });
+                  processedGroupInvites.add(groupFlag);
+                  runtime.log?.(`[tlon] Auto-accepted group invite: ${groupFlag} (from ${validInvite.from})`);
+                } catch (err) {
+                  runtime.error?.(`[tlon] Failed to auto-accept group ${groupFlag}: ${String(err)}`);
+                }
+              }
+            } catch (error: any) {
+              runtime.error?.(`[tlon] Error handling foreigns event: ${error?.message ?? String(error)}`);
+            }
+          },
+          err: (error) => {
+            runtime.error?.(`[tlon] Foreigns subscription error: ${String(error)}`);
+          },
+          quit: () => {
+            runtime.log?.("[tlon] Foreigns subscription ended");
+          },
+        });
+        runtime.log?.("[tlon] Subscribed to foreigns (/v1/foreigns) for auto-accepting group invites");
+      } catch (err) {
+        runtime.log?.(`[tlon] Foreigns subscription failed: ${String(err)}`);
+      }
     }
 
     // Discover channels to watch
