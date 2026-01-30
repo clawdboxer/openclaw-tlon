@@ -19,7 +19,7 @@ import {
   isSummarizationRequest,
   type ParsedCite,
 } from "./utils.js";
-import { fetchAllChannels } from "./discovery.js";
+import { fetchAllChannels, fetchInitData } from "./discovery.js";
 import { createSettingsManager, type TlonSettingsStore } from "../settings.js";
 import type { Foreigns, DmInvite } from "../urbit/foreigns.js";
 
@@ -140,12 +140,16 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
     runtime.log?.(`[tlon] Could not fetch nickname: ${error?.message ?? String(error)}`);
   }
 
+  // Store init foreigns for processing after settings are loaded
+  let initForeigns: Foreigns | null = null;
+
   if (account.autoDiscoverChannels !== false) {
     try {
-      const discoveredChannels = await fetchAllChannels(api, runtime);
-      if (discoveredChannels.length > 0) {
-        groupChannels = discoveredChannels;
+      const initData = await fetchInitData(api, runtime);
+      if (initData.channels.length > 0) {
+        groupChannels = initData.channels;
       }
+      initForeigns = initData.foreigns;
     } catch (error: any) {
       runtime.error?.(`[tlon] Auto-discovery failed: ${error?.message ?? String(error)}`);
     }
@@ -801,12 +805,9 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
         }
       };
       
-      // Initial check for existing pending invites
-      try {
-        const existingForeigns = await api!.scry("/groups/v1/foreigns.json") as Foreigns;
-        await processPendingInvites(existingForeigns);
-      } catch (err) {
-        runtime.log?.(`[tlon] Could not check existing foreigns: ${String(err)}`);
+      // Process existing pending invites from init data
+      if (initForeigns) {
+        await processPendingInvites(initForeigns);
       }
       
       try {
