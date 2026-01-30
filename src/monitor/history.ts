@@ -118,7 +118,7 @@ export async function fetchThreadHistory(
     const formattedParentId = formatUd(parentId);
     runtime?.log?.(`[tlon] Thread history - parentId: ${parentId} -> formatted: ${formattedParentId}`);
     
-    const scryPath = `/channels/v4/${channelNest}/posts/post/${formattedParentId}/replies/newest/${count}.json`;
+    const scryPath = `/channels/v4/${channelNest}/posts/post/id/${formattedParentId}/replies/newest/${count}.json`;
     runtime?.log?.(`[tlon] Fetching thread history: ${scryPath}`);
 
     const data: any = await api.scry(scryPath);
@@ -157,7 +157,7 @@ export async function fetchThreadHistory(
     runtime?.log?.(`[tlon] Error fetching thread history: ${error?.message ?? String(error)}`);
     // Fall back to trying alternate path structure
     try {
-      const altPath = `/channels/v4/${channelNest}/posts/post/${formattedParentId}.json`;
+      const altPath = `/channels/v4/${channelNest}/posts/post/id/${formattedParentId}.json`;
       runtime?.log?.(`[tlon] Trying alternate path: ${altPath}`);
       const data: any = await api.scry(altPath);
       
