@@ -2,6 +2,20 @@ import type { RuntimeEnv } from "clawdbot/plugin-sdk";
 
 import { extractMessageText } from "./utils.js";
 
+/**
+ * Format a number as @ud (with dots every 3 digits from the right)
+ * e.g., 170141184507799509469114119040828178432 -> 170.141.184.507.799.509.469.114.119.040.828.178.432
+ */
+function formatUd(id: string | number): string {
+  const str = String(id).replace(/\./g, ''); // Remove any existing dots
+  const reversed = str.split('').reverse();
+  const chunks: string[] = [];
+  for (let i = 0; i < reversed.length; i += 3) {
+    chunks.push(reversed.slice(i, i + 3).reverse().join(''));
+  }
+  return chunks.reverse().join('.');
+}
+
 export type TlonHistoryEntry = {
   author: string;
   content: string;
@@ -100,10 +114,11 @@ export async function fetchThreadHistory(
   try {
     // Tlon API: fetch replies to a specific post
     // Format: /channels/v4/{nest}/posts/post/{parentId}/replies/newest/{count}.json
-    // parentId might need @ud formatting (dots) - try both
-    runtime?.log?.(`[tlon] Thread history - parentId raw: ${parentId}`);
+    // parentId needs @ud formatting (dots every 3 digits)
+    const formattedParentId = formatUd(parentId);
+    runtime?.log?.(`[tlon] Thread history - parentId: ${parentId} -> formatted: ${formattedParentId}`);
     
-    const scryPath = `/channels/v4/${channelNest}/posts/post/${parentId}/replies/newest/${count}.json`;
+    const scryPath = `/channels/v4/${channelNest}/posts/post/${formattedParentId}/replies/newest/${count}.json`;
     runtime?.log?.(`[tlon] Fetching thread history: ${scryPath}`);
 
     const data: any = await api.scry(scryPath);
@@ -142,7 +157,7 @@ export async function fetchThreadHistory(
     runtime?.log?.(`[tlon] Error fetching thread history: ${error?.message ?? String(error)}`);
     // Fall back to trying alternate path structure
     try {
-      const altPath = `/channels/v4/${channelNest}/posts/post/${parentId}.json`;
+      const altPath = `/channels/v4/${channelNest}/posts/post/${formattedParentId}.json`;
       runtime?.log?.(`[tlon] Trying alternate path: ${altPath}`);
       const data: any = await api.scry(altPath);
       
