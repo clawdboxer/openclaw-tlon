@@ -54,9 +54,14 @@ If no mode is specified, default to "restricted" — NEVER "open"
 | Scenario | Expected Behavior |
 |----------|-------------------|
 | `autoAcceptGroupInvites` = false | ❌ Don't auto-accept any invites |
-| `autoAcceptGroupInvites` = true, `groupInviteAllowlist` empty | ⚠️ Accept all (log warning) |
+| `autoAcceptGroupInvites` = true, `groupInviteAllowlist` empty | ❌ Reject all (fail-safe) |
 | `autoAcceptGroupInvites` = true, inviter ON allowlist | ✅ Accept invite |
 | `autoAcceptGroupInvites` = true, inviter NOT on allowlist | ❌ Reject invite |
+
+**Critical Invariant:**
+```
+If groupInviteAllowlist is empty/undefined, fail-safe to DENY — NEVER accept
+```
 
 **Why This Matters:**
 Malicious actors could invite the bot to groups containing:

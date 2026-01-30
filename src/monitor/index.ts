@@ -877,7 +877,10 @@ export async function monitorTlonProvider(opts: MonitorTlonOpts = {}): Promise<v
               continue;
             }
           } else {
-            runtime.log?.(`[tlon] ⚠️ No groupInviteAllowlist configured - accepting invite from any ship`);
+            // SECURITY: Fail-safe to deny - require explicit allowlist
+            runtime.log?.(`[tlon] Skipping group invite from ${inviterShip} - no groupInviteAllowlist configured (fail-safe)`);
+            processedGroupInvites.add(groupFlag);
+            continue;
           }
           
           try {
