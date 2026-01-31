@@ -33,6 +33,7 @@
     "@urbit/http-api": "^3.0.0"
   },
   "devDependencies": {
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "zod": "^4.3.6"
   }
 }

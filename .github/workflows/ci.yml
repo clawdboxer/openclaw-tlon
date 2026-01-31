@@ -25,7 +25,8 @@ jobs:
         run: npm ci || npm install
 
       - name: Run tests
-        run: npx vitest run
+        # Exclude config-schema.test.ts - requires clawdbot runtime (peer dependency)
+        run: npx vitest run --exclude src/config-schema.test.ts
 
       - name: Run security tests
         run: npx vitest run src/security.test.ts
