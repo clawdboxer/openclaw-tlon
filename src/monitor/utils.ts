@@ -119,6 +119,22 @@ export function isDmAllowed(senderShip: string, allowlist: string[] | undefined)
     .some((ship) => ship === normalizedSender);
 }
 
+/**
+ * Check if a group invite from a ship should be auto-accepted.
+ * 
+ * SECURITY: Fail-safe to deny. If allowlist is empty or undefined,
+ * ALL invites are rejected - even if autoAcceptGroupInvites is enabled.
+ * This prevents misconfigured bots from accepting malicious invites.
+ */
+export function isGroupInviteAllowed(inviterShip: string, allowlist: string[] | undefined): boolean {
+  // SECURITY: Fail-safe to deny when no allowlist configured
+  if (!allowlist || allowlist.length === 0) return false;
+  const normalizedInviter = normalizeShip(inviterShip);
+  return allowlist
+    .map((ship) => normalizeShip(ship))
+    .some((ship) => ship === normalizedInviter);
+}
+
 // Helper to recursively extract text from inline content
 function extractInlineText(items: any[]): string {
   return items.map((item: any) => {
