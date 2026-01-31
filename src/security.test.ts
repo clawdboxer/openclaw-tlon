@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { isDmAllowed, isBotMentioned, extractMessageText } from "./monitor/utils.js";
+import { isDmAllowed, isGroupInviteAllowed, isBotMentioned, extractMessageText } from "./monitor/utils.js";
 import { normalizeShip } from "./targets.js";
 
 describe("Security: DM Allowlist", () => {
@@ -86,6 +86,56 @@ describe("Security: DM Allowlist", () => {
       const allowlist = [" ~zod ", "~bus"];
       expect(isDmAllowed("~zod", allowlist)).toBe(true);
       expect(isDmAllowed(" ~zod ", allowlist)).toBe(true);
+    });
+  });
+});
+
+describe("Security: Group Invite Allowlist", () => {
+  describe("isGroupInviteAllowed", () => {
+    it("rejects invites when allowlist is empty (fail-safe)", () => {
+      // CRITICAL: Empty allowlist must DENY, not accept-all
+      expect(isGroupInviteAllowed("~zod", [])).toBe(false);
+      expect(isGroupInviteAllowed("~sampel-palnet", [])).toBe(false);
+      expect(isGroupInviteAllowed("~malicious-actor", [])).toBe(false);
+    });
+
+    it("rejects invites when allowlist is undefined (fail-safe)", () => {
+      // CRITICAL: Undefined allowlist must DENY, not accept-all
+      expect(isGroupInviteAllowed("~zod", undefined)).toBe(false);
+      expect(isGroupInviteAllowed("~sampel-palnet", undefined)).toBe(false);
+    });
+
+    it("accepts invites from ships on the allowlist", () => {
+      const allowlist = ["~nocsyx-lassul", "~malmur-halmex"];
+      expect(isGroupInviteAllowed("~nocsyx-lassul", allowlist)).toBe(true);
+      expect(isGroupInviteAllowed("~malmur-halmex", allowlist)).toBe(true);
+    });
+
+    it("rejects invites from ships NOT on the allowlist", () => {
+      const allowlist = ["~nocsyx-lassul", "~malmur-halmex"];
+      expect(isGroupInviteAllowed("~random-attacker", allowlist)).toBe(false);
+      expect(isGroupInviteAllowed("~malicious-ship", allowlist)).toBe(false);
+      expect(isGroupInviteAllowed("~zod", allowlist)).toBe(false);
+    });
+
+    it("normalizes ship names (with/without ~ prefix)", () => {
+      const allowlist = ["~nocsyx-lassul"];
+      expect(isGroupInviteAllowed("nocsyx-lassul", allowlist)).toBe(true);
+      expect(isGroupInviteAllowed("~nocsyx-lassul", allowlist)).toBe(true);
+      
+      const allowlistWithoutTilde = ["nocsyx-lassul"];
+      expect(isGroupInviteAllowed("~nocsyx-lassul", allowlistWithoutTilde)).toBe(true);
+    });
+
+    it("does not allow partial matches", () => {
+      const allowlist = ["~zod"];
+      expect(isGroupInviteAllowed("~zod-moon", allowlist)).toBe(false);
+      expect(isGroupInviteAllowed("~pinser-botter-zod", allowlist)).toBe(false);
+    });
+
+    it("handles whitespace in allowlist entries", () => {
+      const allowlist = [" ~nocsyx-lassul ", "~malmur-halmex"];
+      expect(isGroupInviteAllowed("~nocsyx-lassul", allowlist)).toBe(true);
     });
   });
 });
