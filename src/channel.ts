@@ -9,15 +9,21 @@ import {
   DEFAULT_ACCOUNT_ID,
   normalizeAccountId,
 } from "openclaw/plugin-sdk";
-
-import { resolveTlonAccount, listTlonAccountIds } from "./types.js";
-import { formatTargetHint, normalizeShip, parseTlonTarget } from "./targets.js";
-import { ensureUrbitConnectPatched, Urbit } from "./urbit/http-api.js";
-import { buildMediaText, buildMediaStory, sendDm, sendGroupMessage, sendDmWithStory, sendGroupMessageWithStory } from "./urbit/send.js";
-import { monitorTlonProvider } from "./monitor/index.js";
 import { tlonChannelConfigSchema } from "./config-schema.js";
+import { monitorTlonProvider } from "./monitor/index.js";
 import { tlonOnboardingAdapter } from "./onboarding.js";
+import { formatTargetHint, normalizeShip, parseTlonTarget } from "./targets.js";
+import { resolveTlonAccount, listTlonAccountIds } from "./types.js";
 import { authenticate } from "./urbit/auth.js";
+import { ensureUrbitConnectPatched, Urbit } from "./urbit/http-api.js";
+import {
+  buildMediaText,
+  buildMediaStory,
+  sendDm,
+  sendGroupMessage,
+  sendDmWithStory,
+  sendGroupMessageWithStory,
+} from "./urbit/send.js";
 
 // Simple HTTP-only poke that doesn't open an EventSource (avoids conflict with monitor's SSE)
 async function createHttpPokeApi(params: { url: string; code: string; ship: string }) {
@@ -265,7 +271,8 @@ export const tlonPlugin: ChannelPlugin = {
   configSchema: tlonChannelConfigSchema,
   config: {
     listAccountIds: (cfg) => listTlonAccountIds(cfg as MoltbotConfig),
-    resolveAccount: (cfg, accountId) => resolveTlonAccount(cfg as MoltbotConfig, accountId ?? undefined),
+    resolveAccount: (cfg, accountId) =>
+      resolveTlonAccount(cfg as MoltbotConfig, accountId ?? undefined),
     defaultAccountId: () => "default",
     setAccountEnabled: ({ cfg, accountId, enabled }) => {
       const useDefault = !accountId || accountId === "default";

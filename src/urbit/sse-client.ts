@@ -42,7 +42,7 @@ export class UrbitSSEClient {
   maxReconnectDelay: number;
   isConnected = false;
   logger: UrbitSseLogger;
-  
+
   // Event ack tracking - must ack every ~50 events to keep channel healthy
   private lastHeardEventId = -1;
   private lastAcknowledgedEventId = -1;
@@ -269,15 +269,15 @@ export class UrbitSSEClient {
       this.logger.error?.(`Error parsing SSE event: ${String(error)}`);
     }
   }
-  
+
   private async ack(eventId: number): Promise<void> {
     this.lastAcknowledgedEventId = eventId;
-    
+
     const ackData = {
       action: "ack",
       "event-id": eventId,
     };
-    
+
     const response = await fetch(this.channelUrl, {
       method: "PUT",
       headers: {
@@ -286,11 +286,11 @@ export class UrbitSSEClient {
       },
       body: JSON.stringify([ackData]),
     });
-    
+
     if (!response.ok && response.status !== 204) {
       throw new Error(`Ack failed: ${response.status}`);
     }
-    
+
     this.logger.log?.(`[SSE] Acked event ${eventId}`);
   }
 

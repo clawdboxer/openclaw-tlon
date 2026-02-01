@@ -88,7 +88,7 @@ export function formatModelName(modelString?: string | null): string {
 export function isBotMentioned(
   messageText: string,
   botShipName: string,
-  nickname?: string
+  nickname?: string,
 ): boolean {
   if (!messageText || !botShipName) return false;
 
@@ -114,43 +114,46 @@ export function isBotMentioned(
 export function isDmAllowed(senderShip: string, allowlist: string[] | undefined): boolean {
   if (!allowlist || allowlist.length === 0) return false;
   const normalizedSender = normalizeShip(senderShip);
-  return allowlist
-    .map((ship) => normalizeShip(ship))
-    .some((ship) => ship === normalizedSender);
+  return allowlist.map((ship) => normalizeShip(ship)).some((ship) => ship === normalizedSender);
 }
 
 /**
  * Check if a group invite from a ship should be auto-accepted.
- * 
+ *
  * SECURITY: Fail-safe to deny. If allowlist is empty or undefined,
  * ALL invites are rejected - even if autoAcceptGroupInvites is enabled.
  * This prevents misconfigured bots from accepting malicious invites.
  */
-export function isGroupInviteAllowed(inviterShip: string, allowlist: string[] | undefined): boolean {
+export function isGroupInviteAllowed(
+  inviterShip: string,
+  allowlist: string[] | undefined,
+): boolean {
   // SECURITY: Fail-safe to deny when no allowlist configured
   if (!allowlist || allowlist.length === 0) return false;
   const normalizedInviter = normalizeShip(inviterShip);
-  return allowlist
-    .map((ship) => normalizeShip(ship))
-    .some((ship) => ship === normalizedInviter);
+  return allowlist.map((ship) => normalizeShip(ship)).some((ship) => ship === normalizedInviter);
 }
 
 // Helper to recursively extract text from inline content
 function extractInlineText(items: any[]): string {
-  return items.map((item: any) => {
-    if (typeof item === "string") return item;
-    if (item && typeof item === "object") {
-      if (item.ship) return item.ship;
-      if ("sect" in item) return `@${item.sect || "all"}`;
-      if (item["inline-code"]) return `\`${item["inline-code"]}\``;
-      if (item.code) return `\`${item.code}\``;
-      if (item.link && item.link.href) return item.link.content || item.link.href;
-      if (item.bold && Array.isArray(item.bold)) return `**${extractInlineText(item.bold)}**`;
-      if (item.italics && Array.isArray(item.italics)) return `*${extractInlineText(item.italics)}*`;
-      if (item.strike && Array.isArray(item.strike)) return `~~${extractInlineText(item.strike)}~~`;
-    }
-    return "";
-  }).join("");
+  return items
+    .map((item: any) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        if (item.ship) return item.ship;
+        if ("sect" in item) return `@${item.sect || "all"}`;
+        if (item["inline-code"]) return `\`${item["inline-code"]}\``;
+        if (item.code) return `\`${item.code}\``;
+        if (item.link && item.link.href) return item.link.content || item.link.href;
+        if (item.bold && Array.isArray(item.bold)) return `**${extractInlineText(item.bold)}**`;
+        if (item.italics && Array.isArray(item.italics))
+          return `*${extractInlineText(item.italics)}*`;
+        if (item.strike && Array.isArray(item.strike))
+          return `~~${extractInlineText(item.strike)}~~`;
+      }
+      return "";
+    })
+    .join("");
 }
 
 export function extractMessageText(content: unknown): string {
@@ -211,9 +214,10 @@ export function extractMessageText(content: unknown): string {
 
         // Header blocks
         if (block.header && typeof block.header === "object") {
-          const text = block.header.content?.map((item: any) =>
-            typeof item === "string" ? item : ""
-          ).join("") || "";
+          const text =
+            block.header.content
+              ?.map((item: any) => (typeof item === "string" ? item : ""))
+              .join("") || "";
           return `\n## ${text}\n`;
         }
 
