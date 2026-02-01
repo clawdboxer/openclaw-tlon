@@ -39,6 +39,17 @@ rsync -av --delete \
     --exclude='.gitignore' \
     "$PLUGIN_DIR/" "$TARGET_DIR/"
 
+# Transform package.json: use workspace:* for openclaw in monorepo
+echo "Transforming package.json for monorepo..."
+if command -v jq &> /dev/null; then
+    jq '.devDependencies.openclaw = "workspace:*"' "$TARGET_DIR/package.json" > "$TARGET_DIR/package.json.tmp" \
+        && mv "$TARGET_DIR/package.json.tmp" "$TARGET_DIR/package.json"
+else
+    # Fallback to sed if jq not available
+    sed -i.bak 's/"openclaw": "[^"]*"/"openclaw": "workspace:*"/' "$TARGET_DIR/package.json" \
+        && rm -f "$TARGET_DIR/package.json.bak"
+fi
+
 echo ""
 echo "✅ Sync complete!"
 echo ""
